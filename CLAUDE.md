@@ -39,6 +39,31 @@ both: native operators become traced calls, and variable names are read directly
    in-memory DAG. Values pass through untouched (side-channel).
 3. **`src/export-mermaid.ts`** — serialize the DAG to JSON and emit a Mermaid diagram
    (and optionally Graphviz DOT).
+4. **`src/mcp-server.ts`** — an **MCP server** (first-class component) that runs the
+   instrumented code ONCE, then exposes the resulting DAG to an AI agent as queryable tools
+   plus a rendered diagram. This is the primary AI-helper payoff: the agent reads a compact
+   provenance diagram instead of tokenizing and mentally simulating thousands of lines of
+   source.
+
+## MCP server — reuse proven tool vocabulary (do NOT reinvent)
+
+Borrow the tool shapes proven by Chronos (github.com/Rubentxu/chronos). Do not invent new
+names where a proven one fits. PoC MCP tools:
+
+| Tool | Purpose |
+|------|---------|
+| `run_trace` | Run the instrumented program once; produce & cache the DAG. |
+| `find_variable_origin` | Given a variable name (or output attribute), return where it was set and its full ancestry (inputs, ops, source lines). |
+| `query_causality` | Trace a value backward/forward through the DAG. |
+| `get_diagram` | Return the Mermaid diagram (whole DAG or a sub-graph for one value). |
+| `get_execution_summary` | High-level overview: inputs, outputs, black boxes touched, node count. |
+
+Each node/answer must carry: internal variable name, scope (local/global/param/temp),
+**env-var / constant values** captured on this run, the real runtime value, and exact
+source file + line/col. Keep the MCP layer decoupled — it consumes the tape/DAG produced by
+the runtime, it does not know how nodes were produced.
+
+Use the official MCP TypeScript SDK (`@modelcontextprotocol/sdk`), stdio transport.
 
 ## PoC scope — IN
 
@@ -50,7 +75,10 @@ both: native operators become traced calls, and variable names are read directly
 - Bindings: `const` / `let` declarations and simple assignments — capture variable name +
   scope kind (local / global / param)
 - Returns: capture output, tie to enclosing function
+- Environment variables / constants: when a value originates from `process.env.*` or a
+  module-level `const`, capture its name AND its actual value on this run as a leaf node
 - ONE concrete linear execution path
+- MCP server exposing the tools listed above (run-once → query the DAG)
 
 ## PoC scope — DEFERRED (do NOT implement yet)
 
@@ -76,16 +104,22 @@ both: native operators become traced calls, and variable names are read directly
 1. `src/transform.ts` — Babel plugin
 2. `src/runtime.ts` — the `__t` side-channel tape
 3. `src/export-mermaid.ts` — DAG → JSON + Mermaid
-4. `examples/example.ts` — demo with TWO black boxes (one numeric, one string/date)
-5. `README.md` — how to run the pipeline
-6. `package.json`, `tsconfig.json`, `.babelrc`/babel config
+4. `src/mcp-server.ts` — MCP server (run-once → queryable DAG tools; Chronos-style vocabulary)
+5. `examples/example.ts` — demo with TWO black boxes (one numeric, one string/date), using at
+   least one `process.env.*` / module-level `const` to exercise env/constant capture
+6. `README.md` — how to run the pipeline AND how to register the MCP server
+7. `package.json`, `tsconfig.json`, `.babelrc`/babel config
 
 ## Success criteria
 
 - Instrumented `example.ts` produces IDENTICAL results to the original.
-- The trace correctly names inputs, internal local variables, and output attributes.
+- The trace correctly names inputs, internal local variables, output attributes, and
+  env-var / constant values (name + actual value).
 - The Mermaid diagram shows the full linear path across both black boxes, each op labeled
   with operation + source line.
+- The MCP server answers `find_variable_origin` for an output attribute with the full
+  ancestry (inputs, ops, source lines, env/constant values) and returns a diagram via
+  `get_diagram` — demonstrating the run-once, low-token AI-helper workflow.
 
 ## Conventions
 
