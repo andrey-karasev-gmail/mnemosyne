@@ -329,6 +329,64 @@ named nodes — the capability that distinguishes Mnemosyne.
 
 ---
 
+## 9a. Related work — AI-helper / token-reduction positioning
+
+Mnemosyne's most compelling use case is as an **AI helper served over MCP**: run the
+instrumented code **once**, then let an AI agent query a compact **value-provenance diagram**
+(internal variable names, env vars / constants, real runtime values, exact source line per
+operation) instead of tokenizing thousands of lines of source and mentally simulating
+execution. Research into existing tools shows two adjacent camps — and a gap Mnemosyne fills.
+
+### Camp A — Runtime execution-trace MCP servers (dynamic, but not dataflow-shaped)
+
+| Tool | What it does | Gap vs. Mnemosyne |
+|------|--------------|-------------------|
+| **Chronos** (`Rubentxu/chronos`) | Time-travel-debugging MCP server; turns execution into a **queryable temporal database** for AI agents. Tools: `find_variable_origin`, `query_causality`, `reconstruct_call_stack`, `compare_sessions`. Multi-language (Python `sys.settrace`, native ptrace, Java JDWP, Go Delve). | **Closest prior art.** But it is event/stack/query oriented, not a holistic value-provenance **diagram**; no internal-name + env/constant + expression-granularity DAG. |
+| **mcp-debugger** (`debugmcp/mcp-debugger`) | Headless debugger over MCP (DAP); agents set breakpoints, inspect variables, step, 7 languages. | Breakpoint/step model, not a dataflow diagram; agent drives it interactively. |
+| **Undo UDB × MCP**, **PMAT time-travel**, **otel-mcp**, **vigilante** | Feed runtime traces / OTel spans to AI agents. | Observability/trace events, not expression-level value provenance. |
+
+### Camp B — Static code-graph tools for token reduction (validates the thesis)
+
+| Tool | What it does | Gap vs. Mnemosyne |
+|------|--------------|-------------------|
+| **Graphify**, **CodeGraph**, **code-review-graph** | Pre-index a repo into a queryable knowledge/dependency graph so agents retrieve targeted context instead of reading whole files. Reported **~70% token cuts**. | **Static** — no real runtime values, no actual executed path, no env/constant values. |
+| **CntxtJS / CntxtCS** (`brandondocusen`) | Generate code knowledge graphs for LLM context (JS/TS, C#). | Structural, not executional. |
+| **"Stingy Context"** (arXiv 2601.19929) | Hierarchical tree compression; **18:1** context reduction (239k→11k tokens). | Compression of source, not dynamic provenance. |
+| **LLMDFA** (arXiv 2402.10754) | LLM-powered dataflow analysis without compilation. | Analysis technique, not a run-once provenance diagram. |
+
+### The gap Mnemosyne fills
+
+| Capability | Camp A | Camp B | **Mnemosyne** |
+|------------|:-----:|:-----:|:-------------:|
+| Runtime *actual values* | ✅ | ❌ | ✅ |
+| **Internal variable names** | partial | ✅ (static) | ✅ (from AST) |
+| Env vars / constants captured | ❌ | ❌ | ✅ (side-channel) |
+| Exact source line per operation | partial | ✅ | ✅ |
+| Value-provenance **diagram** | ❌ (event/stack) | ✅ (structural) | ✅ (executional) |
+| Single linear concrete path | ✅ | ❌ | ✅ |
+| Run-once → AI queries via MCP (token saver) | ✅ | ✅ | ✅ (design goal) |
+| Cross-black-box provenance at expression granularity | ❌ | partial | ✅ |
+
+**Unfilled niche:** a **run-once, side-channel transpiler** that emits a value-provenance
+diagram (internal variables, env/constants, real values, source lines) served to an AI over
+**MCP**, so the agent reads a compact diagram instead of tokenizing and simulating source.
+
+### Token-reduction thesis (validated by Camp B)
+
+Teams report **~70%** token cuts and up to **18:1** compression by giving LLMs a graph instead
+of raw code. Mnemosyne's twist — a *dynamic, execution-derived* graph with **real values** —
+is stronger for debugging / complex-logic questions because the agent does not have to
+*simulate* the code in its head (expensive, error-prone); it reads the already-executed truth.
+
+### Actionable direction
+
+1. **Add an MCP server as a first-class component** — run instrumented code once; expose the
+   DAG as queryable tools plus a rendered diagram. This is the AI-helper story.
+2. **Borrow Chronos's tool vocabulary** — `find_variable_origin`, `query_causality`,
+   `compare_sessions` are proven MCP tool shapes; differentiate on diagram + internal-names +
+   env/constants + expression granularity.
+3. **Use Camp B's numbers** (~70% / 18:1) as market validation in the manager/architect pitch.
+
 ## 10. References
 
 - JAX tracing / jaxpr — https://jax.readthedocs.io
@@ -342,3 +400,8 @@ named nodes — the capability that distinguishes Mnemosyne.
 - TypeScript Compiler API — https://github.com/microsoft/TypeScript/wiki/Using-the-Compiler-API
 - OpenLineage — https://openlineage.io
 - Apache Atlas — https://atlas.apache.org
+- Chronos (time-travel debugging MCP) — https://github.com/Rubentxu/chronos
+- mcp-debugger — https://github.com/debugmcp/mcp-debugger
+- CntxtJS (LLM code knowledge graphs) — https://github.com/brandondocusen/CntxtJS
+- LLMDFA (LLM dataflow analysis) — https://arxiv.org/abs/2402.10754
+- Undo UDB × MCP — https://undo.io/resources/time-travel-ai-code-assistant/
