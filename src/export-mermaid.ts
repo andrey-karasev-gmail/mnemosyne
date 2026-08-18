@@ -100,7 +100,7 @@ function nodeId(id: number): string {
 }
 
 export function toMermaid(nodes: TapeNode[]): string {
-  const lines: string[] = ["graph LR"];
+  const lines: string[] = ["graph TD"];
   for (const node of nodes) {
     lines.push(`  ${nodeId(node.id)}["${escapeMermaid(nodeLabel(node))}"]`);
   }
@@ -113,7 +113,7 @@ export function toMermaid(nodes: TapeNode[]): string {
 }
 
 export function toDot(nodes: TapeNode[]): string {
-  const lines: string[] = ["digraph mnemosyne {", '  rankdir="LR";'];
+  const lines: string[] = ["digraph mnemosyne {", '  rankdir="TB";'];
   for (const node of nodes) {
     lines.push(`  ${nodeId(node.id)} [label="${nodeLabel(node).replace(/"/g, '\\"')}"];`);
   }

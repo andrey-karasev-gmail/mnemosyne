@@ -49,7 +49,7 @@ run, not just "probably fine."
 cat output/trace.mmd
 ```
 
-Paste into <https://mermaid.live>. Walk the graph left to right and narrate:
+Paste into <https://mermaid.live>. Walk the graph top to bottom and narrate:
 
 - `process.env.TAX_RATE (env) = 0.08` → `.Number()` → `TAX_RATE (const)` — the env-var
   capture: real name, real value, exact line.
