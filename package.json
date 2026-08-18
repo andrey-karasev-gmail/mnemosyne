@@ -1,0 +1,32 @@
+{
+  "name": "mnemosyne",
+  "version": "0.1.0",
+  "description": "Source-to-source TS transpiler that traces dataflow into a value-provenance DAG, served over MCP.",
+  "private": true,
+  "license": "UNLICENSED",
+  "type": "commonjs",
+  "scripts": {
+    "trace": "ts-node --transpile-only src/run-example.ts",
+    "mcp": "ts-node --transpile-only src/mcp-server.ts",
+    "build": "node --max-old-space-size=8192 node_modules/.bin/tsc -p tsconfig.json",
+    "typecheck": "node --max-old-space-size=8192 node_modules/.bin/tsc --noEmit -p tsconfig.json"
+  },
+  "dependencies": {
+    "@babel/core": "^7.29.7",
+    "@babel/generator": "^7.29.8",
+    "@babel/parser": "^7.29.8",
+    "@babel/preset-typescript": "^7.29.7",
+    "@babel/traverse": "^7.29.8",
+    "@babel/types": "^7.29.8",
+    "@modelcontextprotocol/sdk": "^1.30.0",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@types/babel__core": "^7.20.5",
+    "@types/babel__generator": "^7.6.8",
+    "@types/babel__traverse": "^7.20.6",
+    "@types/node": "^24.13.3",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.3"
+  }
+}
