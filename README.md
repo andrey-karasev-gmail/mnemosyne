@@ -30,6 +30,28 @@ linear, concrete execution path — no speculative branches.
 - `examples/example.ts` — demo with two black boxes (`priceBox`, `labelBox`), chained,
   using `process.env.TAX_RATE` and a module-level `const` to exercise env/constant capture
 
+```mermaid
+flowchart LR
+  subgraph "Compile time"
+    SRC["examples/example.ts"] -->|"Babel + transform.ts\n(AST-in / AST-out)"| GEN["Instrumented code"]
+  end
+  subgraph "Runtime"
+    GEN -->|"runs in an isolated vm context"| TAPE["runtime.ts\nthe __t side-channel tape"]
+  end
+  subgraph "Export"
+    TAPE --> MMD["export-mermaid.ts"]
+    MMD --> OUT["JSON / Mermaid / DOT"]
+  end
+  subgraph "AI-helper"
+    TAPE --> MCP["mcp-server.ts"]
+    MCP -->|"run_trace, find_variable_origin,\nquery_causality, get_diagram,\nget_execution_summary"| AGENT["AI agent"]
+  end
+```
+
+Each stage only knows the shape of what it consumes, not how the upstream one produced it —
+the transpiler doesn't know how the tape stores nodes, and the renderer/MCP layer doesn't
+know how nodes were produced.
+
 ## Running the pipeline
 
 ```bash
@@ -98,6 +120,16 @@ Every node carries: internal variable name, scope (`local`/`global`/`param`/`tem
 This is the run-once, low-token AI-helper workflow: an agent calls `run_trace` once, then
 answers debugging questions entirely from the cached DAG instead of re-reading and mentally
 simulating the source on every question.
+
+## Demo & slides
+
+- `docs/DEMO.md` — a ~10 minute step-by-step walkthrough script (setup → prove behavior
+  preservation → read the diagram → drive the MCP server live).
+- `docs/presentation/Mnemosyne-Overview.pptx` — a slide deck covering the problem,
+  architecture, live example, and roadmap (regenerate with
+  `docs/presentation/build_deck.py`).
+- `docs/FUTURE-EXTENSIONS.md` — the plan for tracing into external package source instead
+  of stopping at the package boundary.
 
 ## Scope
 
