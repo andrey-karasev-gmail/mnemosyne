@@ -31,7 +31,7 @@ linear, concrete execution path — no speculative branches.
   using `process.env.TAX_RATE` and a module-level `const` to exercise env/constant capture
 
 ```mermaid
-flowchart LR
+flowchart TD
   subgraph "Compile time"
     SRC["examples/example.ts"] -->|"Babel + transform.ts\n(AST-in / AST-out)"| GEN["Instrumented code"]
   end
