@@ -5,11 +5,37 @@
   "private": true,
   "license": "UNLICENSED",
   "type": "commonjs",
+  "main": "dist/src/index.js",
+  "types": "dist/src/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/src/index.d.ts",
+      "default": "./dist/src/index.js"
+    },
+    "./esbuild": {
+      "types": "./dist/src/esbuild-plugin.d.ts",
+      "default": "./dist/src/esbuild-plugin.js"
+    }
+  },
+  "files": [
+    "dist/src",
+    "README.md"
+  ],
   "scripts": {
     "trace": "ts-node --transpile-only src/run-example.ts",
+    "trace:multifile": "ts-node --transpile-only src/run-example.ts examples/multi-file/main.ts",
     "mcp": "ts-node --transpile-only src/mcp-server.ts",
     "build": "node --max-old-space-size=8192 node_modules/.bin/tsc -p tsconfig.json",
+    "prepublishOnly": "npm run build",
     "typecheck": "node --max-old-space-size=8192 node_modules/.bin/tsc --noEmit -p tsconfig.json"
+  },
+  "peerDependencies": {
+    "esbuild": ">=0.17.0"
+  },
+  "peerDependenciesMeta": {
+    "esbuild": {
+      "optional": true
+    }
   },
   "dependencies": {
     "@babel/core": "^7.29.7",
@@ -22,10 +48,12 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@babel/plugin-transform-modules-commonjs": "^7.29.7",
     "@types/babel__core": "^7.20.5",
     "@types/babel__generator": "^7.6.8",
     "@types/babel__traverse": "^7.20.6",
     "@types/node": "^24.13.3",
+    "esbuild": "^0.28.2",
     "ts-node": "^10.9.2",
     "typescript": "^5.9.3"
   }

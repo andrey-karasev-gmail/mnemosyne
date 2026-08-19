@@ -32,7 +32,8 @@ export type ScopeKind =
   | "env"
   | "literal"
   | "output"
-  | "return";
+  | "return"
+  | "import";
 
 export type NodeKind = "input" | "op" | "call" | "bind" | "return" | "output" | "literal";
 
@@ -58,6 +59,15 @@ export interface OperandMeta {
 interface Frame {
   fnName: string;
   vars: Map<string, number>;
+  /** export name -> local name, populated by `recordExport()` calls that run during this
+   * frame's (module's) own execution. Kept per-frame, not on the tape, so a nested import's
+   * own recordExport/registerModule cycle can never clobber an outer module's pending
+   * exports, however import and export statements happen to be interleaved in source order. */
+  exportBindings: Map<string, string>;
+}
+
+function newFrame(fnName: string): Frame {
+  return { fnName, vars: new Map(), exportBindings: new Map() };
 }
 
 function computeOp(operator: string, l: any, r: any): any {
@@ -89,8 +99,12 @@ function computeOp(operator: string, l: any, r: any): any {
 
 export class Tape {
   nodes: TapeNode[] = [];
-  private frames: Frame[] = [{ fnName: "<module>", vars: new Map() }];
+  private frames: Frame[] = [newFrame("<module>")];
   private lastId: number | undefined = undefined;
+  /** Resolved module file path -> (export name -> node id), snapshotted once a module
+   * finishes running (see module-loader.ts). Lets an importing module's `importBinding`
+   * attach a real ancestry edge instead of falling back to an opaque leaf. */
+  private moduleExports = new Map<string, Map<string, number>>();
 
   private currentFrame(): Frame {
     return this.frames[this.frames.length - 1];
@@ -125,16 +139,68 @@ export class Tape {
   }
 
   enterFrame(fnName: string): void {
-    this.frames.push({ fnName, vars: new Map() });
+    this.frames.push(newFrame(fnName));
   }
 
   exitFrame(): void {
     this.frames.pop();
   }
 
+  /** `export { local as exported }` / `export default local` (see transform.ts): record that
+   * `exportName` is currently bound to `localName` in this module, so `registerModule()` can
+   * resolve it to a real node id — keyed by the *external* name an importer asks for, which
+   * only coincides with the local variable name for a plain `export const x = ...`. */
+  recordExport(exportName: string, localName: string): void {
+    this.currentFrame().exportBindings.set(exportName, localName);
+  }
+
+  /** Snapshot the current (module) frame's exports under `modulePath`, so a future importer
+   * of this module can resolve `importBinding`'s `exportName` to a real node id. Only names
+   * actually recorded via `recordExport()` are included — and each is looked up by its local
+   * name at snapshot time, so `export { a as b }` / `export default` resolve correctly
+   * instead of assuming the export name matches the local variable name. */
+  registerModule(modulePath: string): void {
+    const frame = this.currentFrame();
+    const exportMap = new Map<string, number>();
+    for (const [exportName, localName] of frame.exportBindings) {
+      const id = frame.vars.get(localName);
+      if (id !== undefined) exportMap.set(exportName, id);
+    }
+    this.moduleExports.set(modulePath, exportMap);
+  }
+
+  /** `import { name } from "./mod"` (or default): looks up the exporting module's already-
+   * recorded node for `exportName` and records a `bind`-like node for `localName` in the
+   * importing module's current frame, wired to that node as its input. */
+  importBinding(localName: string, value: unknown, meta: { modulePath: string; exportName: string; loc?: Loc }): unknown {
+    const sourceId = this.moduleExports.get(meta.modulePath)?.get(meta.exportName);
+    const id = this.addNode({
+      kind: "bind",
+      label: localName,
+      scope: "import",
+      inputs: sourceId !== undefined ? [sourceId] : [],
+      value,
+      loc: meta.loc,
+    });
+    this.currentFrame().vars.set(localName, id);
+    return value;
+  }
+
   /** Register a function parameter as a leaf input node. */
   param(name: string, value: unknown, loc?: Loc): unknown {
     const id = this.addNode({ kind: "input", label: name, scope: "param", inputs: [], value, loc });
+    this.currentFrame().vars.set(name, id);
+    return value;
+  }
+
+  /**
+   * Register a `function name() {}` declaration by name so other bindings (notably a cross-
+   * file `import { name }`) can resolve to a real node instead of a synthesized leaf. Function
+   * declarations don't flow through `bind()` (they aren't `VariableDeclarator`/assignment
+   * nodes), so this exists to give them the same "named, resolvable" status those get.
+   */
+  declareFunction(name: string, value: unknown, meta: { scope: ScopeKind; loc?: Loc }): unknown {
+    const id = this.addNode({ kind: "bind", label: name, scope: meta.scope, inputs: [], value, loc: meta.loc });
     this.currentFrame().vars.set(name, id);
     return value;
   }
@@ -172,6 +238,37 @@ export class Tape {
       this.currentFrame().vars.set(name, id);
     }
     return value;
+  }
+
+  /**
+   * Short-circuit `&& || ??`. `left` is already evaluated (JS always evaluates it); `right`
+   * is a thunk so it only runs — and only gets traced — when short-circuiting doesn't apply,
+   * matching native semantics exactly. The left operand is resolved before invoking the
+   * thunk so an 'expr'-kind left operand's `lastId` fallback can't be clobbered by whatever
+   * the thunk goes on to evaluate.
+   */
+  logical(
+    operator: "&&" | "||" | "??",
+    left: unknown,
+    right: () => unknown,
+    meta: { loc?: Loc; lhs?: OperandMeta; rhs?: OperandMeta },
+  ): unknown {
+    const lid = this.resolve(meta.lhs, left);
+
+    const shortCircuits =
+      operator === "&&" ? !left : operator === "||" ? !!left : left !== null && left !== undefined;
+
+    if (shortCircuits) {
+      const inputs = lid !== undefined ? [lid] : [];
+      this.addNode({ kind: "op", op: operator, label: operator, scope: "temp", inputs, value: left, loc: meta.loc });
+      return left;
+    }
+
+    const rightValue = right();
+    const rid = this.resolve(meta.rhs, rightValue);
+    const inputs = [lid, rid].filter((x): x is number => x !== undefined);
+    this.addNode({ kind: "op", op: operator, label: operator, scope: "temp", inputs, value: rightValue, loc: meta.loc });
+    return rightValue;
   }
 
   /** Binary operator: computes the real result (native ops can't be overloaded) and records it. */
@@ -265,8 +362,9 @@ export class Tape {
   /** Clear the tape and frame stack for a fresh run. */
   reset(): void {
     this.nodes = [];
-    this.frames = [{ fnName: "<module>", vars: new Map() }];
+    this.frames = [newFrame("<module>")];
     this.lastId = undefined;
+    this.moduleExports.clear();
   }
 }
 

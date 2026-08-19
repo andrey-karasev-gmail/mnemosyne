@@ -34,7 +34,7 @@ Expected output:
 
 ```
 Identical output (plain vs. instrumented): true
-Tape recorded 52 nodes.
+Tape recorded 54 nodes.
 Wrote output/trace.json and output/trace.mmd
 ```
 

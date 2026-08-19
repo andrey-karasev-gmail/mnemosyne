@@ -25,10 +25,23 @@ linear, concrete execution path — no speculative branches.
 - `src/transform.ts` — Babel plugin (AST-in / AST-out)
 - `src/runtime.ts` — the `__t` side-channel tape (builds the DAG)
 - `src/export-mermaid.ts` — DAG → JSON + Mermaid diagram / Graphviz DOT
+- `src/resolve-module.ts` — resolves a relative import/require specifier to an absolute
+  file path; shared by `transform.ts` (compile time) and `module-loader.ts` (run time) so
+  both agree on module identity for cross-file provenance edges
+- `src/compile.ts` — single shared compile step (instrumented via `transform.ts`, or plain
+  via `@babel/plugin-transform-modules-commonjs`) used by both the entry file and any
+  locally-imported files
+- `src/module-loader.ts` — runtime CommonJS-style loader for local imports; shares one `vm`
+  context/tape across every traced file so cross-file dataflow stays in a single DAG
 - `src/pipeline.ts` — shared compile+run plumbing (used by both the CLI and the MCP server)
 - `src/mcp-server.ts` — MCP server exposing the DAG to an AI agent
+- `src/index.ts` — public package entry point (for consumers who just want the Babel
+  plugin + runtime tape in their own project)
 - `examples/example.ts` — demo with two black boxes (`priceBox`, `labelBox`), chained,
   using `process.env.TAX_RATE` and a module-level `const` to exercise env/constant capture
+- `examples/multi-file/` — the same idea split across separate files
+  (`price-box.ts`, `label-box.ts`, `main.ts`) connected via relative `import`/`export`, to
+  exercise cross-file dataflow tracing
 
 ```mermaid
 flowchart TD
@@ -56,7 +69,8 @@ know how nodes were produced.
 
 ```bash
 npm install
-npm run trace       # transform + run examples/example.ts, write output/trace.{json,mmd}
+npm run trace            # transform + run examples/example.ts, write output/trace.{json,mmd}
+npm run trace:multifile  # same, but for examples/multi-file/main.ts (cross-file imports)
 ```
 
 This runs `examples/example.ts` twice — once plain (types stripped only), once
@@ -133,11 +147,12 @@ simulating the source on every question.
 
 ## Scope
 
-See `CLAUDE.md` for the full spec. In scope: binary arithmetic and comparisons, generic
-method calls, function calls, `const`/`let` bindings and simple assignment, `return`
-(including per-attribute tracing of object-literal returns), and `process.env.*` / module
-`const` capture. Deferred: short-circuit operators, compound assignment, template literals,
-destructuring, spread, `async`/await, loops.
+See `CLAUDE.md` for the full spec. In scope: binary arithmetic and comparisons, short-circuit
+`&& || ??`, generic method calls, function calls, `const`/`let` bindings and simple
+assignment, `return` (including per-attribute tracing of object-literal returns),
+`process.env.*` / module `const` capture, and local (same-repo) `import`/`export` tracing
+across multiple files sharing one tape. Deferred: compound assignment, template literals,
+destructuring, spread, `async`/await, loops, tracing into `node_modules`/external packages.
 
 ### Known limitation
 
@@ -147,6 +162,39 @@ directly): since values are never wrapped, an object's per-property provenance i
 attached to the object itself, so such a read resolves to "the object as a whole" rather
 than the specific attribute. Binding the property to a local first (as `examples/example.ts`
 does with `chainedTotal`) keeps ancestry precise from that point on.
+
+## Using this as a library
+
+`src/index.ts` re-exports `mnemosynePlugin`, the `Tape`/`__t` runtime, `installGlobalTape`,
+and the `export-mermaid.ts` helpers (`toJSON`, `toMermaid`, `toDot`, `subgraphFrom`,
+`descendantsOf`). `npm run build` compiles to `dist/src/` (`main`/`types` in
+`package.json` point there). Before publishing: pick a real `license` and drop
+`"private": true` from `package.json` — both are left as placeholders since that's a call
+for whoever owns the release, not something to flip silently.
+
+### Bundling with esbuild instead of Babel directly
+
+esbuild has no AST-visitor plugin hook like Babel's — its plugin API only exposes
+`onResolve`/`onLoad`. `mnemosyne/esbuild` hooks `onLoad`, runs each matched file through the
+same instrumentation `transform.ts` already does, and hands esbuild the already-instrumented
+JS to bundle. Babel still performs the actual rewriting; esbuild is just the bundler:
+
+```ts
+import * as esbuild from "esbuild";
+import { mnemosyneEsbuildPlugin } from "mnemosyne/esbuild";
+import { installGlobalTape, __t } from "mnemosyne";
+
+await esbuild.build({
+  entryPoints: ["src/app.ts"],
+  bundle: true,
+  outfile: "out.cjs",
+  plugins: [mnemosyneEsbuildPlugin()], // options: { filter?, includeNodeModules? }
+});
+
+installGlobalTape(); // instrumented code refers to a free/global `__t` — set it up first
+require("./out.cjs");
+console.log(__t.nodes.length);
+```
 
 ## Status
 

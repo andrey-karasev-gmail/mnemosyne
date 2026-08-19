@@ -44,6 +44,14 @@ both: native operators become traced calls, and variable names are read directly
    plus a rendered diagram. This is the primary AI-helper payoff: the agent reads a compact
    provenance diagram instead of tokenizing and mentally simulating thousands of lines of
    source.
+5. **`src/resolve-module.ts`**, **`src/compile.ts`**, **`src/module-loader.ts`** — support
+   local (same-repo) multi-file tracing: resolve relative import specifiers to absolute
+   paths, share one compile step between the entry file and its local imports, and run every
+   traced file in one `vm` context sharing a single tape, so cross-file provenance edges are
+   real DAG edges rather than opaque boundaries.
+6. **`src/index.ts`** — the public package entry point for consumers who want to use the
+   Babel plugin/runtime in their own project (as opposed to this repo's internal CLI/MCP
+   tooling).
 
 ## MCP server — reuse proven tool vocabulary (do NOT reinvent)
 
@@ -69,6 +77,8 @@ Use the official MCP TypeScript SDK (`@modelcontextprotocol/sdk`), stdio transpo
 
 - Binary arithmetic: `+ - * /`
 - Comparisons: `< > <= >= === !==`
+- Short-circuit `&& || ??` (implemented via a thunk for the right-hand side so it's only
+  evaluated/traced when not short-circuited)
 - Method calls: generic `obj.method(args)` (covers `trim`, `split`, `concat`, and
   complex-type analogs `add` / `extract` / `multiply` / `divide`)
 - Function calls: `f(x, y)` with argument-name capture
@@ -77,16 +87,22 @@ Use the official MCP TypeScript SDK (`@modelcontextprotocol/sdk`), stdio transpo
 - Returns: capture output, tie to enclosing function
 - Environment variables / constants: when a value originates from `process.env.*` or a
   module-level `const`, capture its name AND its actual value on this run as a leaf node
+- Local (same-repo) `import`/`export` across multiple files: relative-specifier imports and
+  named/default exports are rewritten to CommonJS + tagged so the DAG resolves an
+  `import { x } from "./other"` binding back to the real node in the exporting module,
+  sharing one tape across every file via `src/module-loader.ts`
 - ONE concrete linear execution path
 - MCP server exposing the tools listed above (run-once → query the DAG)
 
 ## PoC scope — DEFERRED (do NOT implement yet)
 
-- Short-circuit `&& || ?? ?:` (hard: needs careful lowering — leave out)
 - Compound assignment `+= ++`, unary ops, template literals, destructuring, spread
 - `async` / `await`, generators
 - Loops / per-iteration node aggregation
 - Optional chaining `?.`
+- Tracing into `node_modules` / external packages (imports are only resolved when the
+  specifier is relative and points at a file inside this repo; bare specifiers fall through
+  as opaque values)
 
 ## Rewrite mapping (reference)
 
