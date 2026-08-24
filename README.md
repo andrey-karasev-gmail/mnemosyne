@@ -172,6 +172,15 @@ and the `export-mermaid.ts` helpers (`toJSON`, `toMermaid`, `toDot`, `subgraphFr
 `"private": true` from `package.json` — both are left as placeholders since that's a call
 for whoever owns the release, not something to flip silently.
 
+> **Note:** esbuild and Babel ship from this one package, not as separate installs. Babel
+> (`@babel/*`) is a regular `dependencies` entry — it performs all of the actual AST
+> rewriting, on both the plain-Babel-plugin path and the esbuild path below. `esbuild`
+> itself is only an *optional* peer dependency: installing `mnemosyne` alone pulls in
+> nothing esbuild-related, and only importing the `mnemosyne/esbuild` subpath exercises it.
+> There's no separate "esbuild edition" that skips Babel — esbuild has no AST-visitor API of
+> its own, so it can only ever be the bundler sitting on top of Babel's rewrite, never a
+> replacement for it.
+
 ### Bundling with esbuild instead of Babel directly
 
 esbuild has no AST-visitor plugin hook like Babel's — its plugin API only exposes
