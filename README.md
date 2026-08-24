@@ -168,9 +168,12 @@ does with `chainedTotal`) keeps ancestry precise from that point on.
 `src/index.ts` re-exports `mnemosynePlugin`, the `Tape`/`__t` runtime, `installGlobalTape`,
 and the `export-mermaid.ts` helpers (`toJSON`, `toMermaid`, `toDot`, `subgraphFrom`,
 `descendantsOf`). `npm run build` compiles to `dist/src/` (`main`/`types` in
-`package.json` point there). Before publishing: pick a real `license` and drop
-`"private": true` from `package.json` — both are left as placeholders since that's a call
-for whoever owns the release, not something to flip silently.
+`package.json` point there). Published as `@web4w3/mnemosyne` under the MIT license, via
+`.github/workflows/publish.yml` — every push to `main` on the (private) source repo builds,
+proves behavior preservation, bumps the patch version, and publishes to the public npm
+registry. The repo staying private doesn't keep the published package private too: once
+published, anyone can `npm install` it and read the compiled output regardless of source
+visibility.
 
 > **Note:** esbuild and Babel ship from this one package, not as separate installs. Babel
 > (`@babel/*`) is a regular `dependencies` entry — it performs all of the actual AST
