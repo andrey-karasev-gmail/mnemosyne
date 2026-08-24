@@ -6,6 +6,7 @@ on:
 
 permissions:
   contents: write
+  id-token: write # required for npm trusted publishing (OIDC) — no NPM_TOKEN needed
 
 jobs:
   publish:
@@ -15,7 +16,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: '24'
+          node-version: '24' # trusted publishing needs npm >=11.5.1 / Node >=22.14.0; 24 covers both
           registry-url: 'https://registry.npmjs.org'
 
       - run: npm ci
@@ -27,10 +28,12 @@ jobs:
       - name: Bump patch version (not committed yet)
         run: npm version patch --no-git-tag-version
 
+      # No token: the npm CLI exchanges this job's OIDC token for a short-lived publish
+      # token itself, once the trusted publisher (this repo + this workflow file) is
+      # configured in the package's npmjs.com settings. Also gets provenance attestations
+      # for free — trusted publishing generates those automatically, no --provenance flag.
       - name: Publish to npm
         run: npm publish
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       # Only reached if publish succeeded, so a failed publish never leaves main out of
       # sync with what's actually on the registry. Uses the default GITHUB_TOKEN (not a
