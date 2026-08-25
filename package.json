@@ -7,6 +7,10 @@
     "type": "git",
     "url": "https://github.com/andrey-karasev-gmail/mnemosyne.git"
   },
+  "homepage": "https://web4w3.com/projects/mnemosyne",
+  "bugs": {
+    "url": "https://github.com/andrey-karasev-gmail/mnemosyne/issues"
+  },
   "publishConfig": {
     "access": "public"
   },
