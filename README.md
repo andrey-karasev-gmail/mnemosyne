@@ -91,6 +91,46 @@ npm run build       # tsc -p tsconfig.json -> dist/
 > (`trace`, `mcp`) use `ts-node --transpile-only` and are unaffected — they never hit this at
 > startup.
 
+## Example diagram
+
+`examples/example.ts` has a `priceBox` function that computes `total` from a `price`, a
+`qty`, and a `TAX_RATE` read from `process.env`. Asking the MCP server for the ancestry of
+`priceBox.total` (`get_diagram name=priceBox.total`, or the equivalent sub-graph filter on
+`output/trace.mmd`) returns exactly this — every input, operation, and source line that
+produced it, including the env-var capture:
+
+```mermaid
+graph TD
+  n0["process.env.TAX_RATE (env) = 0.08 @L6"]
+  n1[".Number() -> 0.08 @L6"]
+  n2["TAX_RATE (const) = 0.08 @L6"]
+  n9["price (param) = 19.99 @L9"]
+  n10["qty (param) = 3 @L9"]
+  n11["* -> 59.97 @L10"]
+  n12["subtotal (local) = 59.97 @L10"]
+  n13["* -> 4.7976 @L11"]
+  n14["tax (local) = 4.7976 @L11"]
+  n15["+ -> 64.7676 @L12"]
+  n16["total (local) = 64.7676 @L12"]
+  n20["priceBox.total = 64.7676 @L14"]
+  n0 --> n1
+  n1 --> n2
+  n9 --> n11
+  n10 --> n11
+  n11 --> n12
+  n12 --> n13
+  n2 --> n13
+  n13 --> n14
+  n12 --> n15
+  n14 --> n15
+  n15 --> n16
+  n16 --> n20
+```
+
+That's the whole point: an AI agent (or a person) can answer "why is `total` 64.7676?" by
+reading this 12-node sub-graph once, instead of re-tokenizing and mentally simulating
+`priceBox`'s source on every question.
+
 ## Running the MCP server
 
 ```bash
