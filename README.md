@@ -99,6 +99,11 @@ npm run build       # tsc -p tsconfig.json -> dist/
 `output/trace.mmd`) returns exactly this — every input, operation, and source line that
 produced it, including the env-var capture:
 
+<img src="https://web4w3.com/diagrams/mnemosyne-pricebox-total.svg" alt="Ancestry diagram for priceBox.total" width="720">
+
+<details>
+<summary>Mermaid source (paste into <a href="https://mermaid.live">mermaid.live</a>)</summary>
+
 ```mermaid
 graph TD
   n0["process.env.TAX_RATE (env) = 0.08 @L6"]
@@ -126,6 +131,8 @@ graph TD
   n15 --> n16
   n16 --> n20
 ```
+
+</details>
 
 That's the whole point: an AI agent (or a person) can answer "why is `total` 64.7676?" by
 reading this 12-node sub-graph once, instead of re-tokenizing and mentally simulating
