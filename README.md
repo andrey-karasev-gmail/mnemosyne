@@ -218,9 +218,10 @@ does with `chainedTotal`) keeps ancestry precise from that point on.
 and the `export-mermaid.ts` helpers (`toJSON`, `toMermaid`, `toDot`, `subgraphFrom`,
 `descendantsOf`). `npm run build` compiles to `dist/src/` (`main`/`types` in
 `package.json` point there). Published as `@web4w3/mnemosyne` under the MIT license, via
-`.github/workflows/publish.yml` — every push to `main` on the (private) source repo builds,
-proves behavior preservation, bumps the patch version, and publishes to the public npm
-registry. The repo staying private doesn't keep the published package private too: once
+`.github/workflows/publish.yml` — pushing a `v*` Git tag (for example, `v0.1.7`) builds,
+proves behavior preservation, sets the package version from the tag, and publishes to the
+public npm registry. Create and push release tags manually; CI does not commit version
+changes or push to `main`. The repo staying private doesn't keep the published package private too: once
 published, anyone can `npm install` it and read the compiled output regardless of source
 visibility.
 
