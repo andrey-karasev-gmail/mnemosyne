@@ -97,7 +97,7 @@ Use the official MCP TypeScript SDK (`@modelcontextprotocol/sdk`), stdio transpo
 ## PoC scope — DEFERRED (do NOT implement yet)
 
 - Compound assignment `+= ++`, unary ops, template literals, destructuring, spread
-- `async` / `await`, generators
+- Async arrows and methods, generators (basic `await` in named async function declarations is supported)
 - Loops / per-iteration node aggregation
 - Optional chaining `?.`
 - Tracing into `node_modules` / external packages (imports are only resolved when the

@@ -389,6 +389,16 @@ export default function mnemosynePlugin(): PluginObj {
         // Complex/computed callees: out of PoC scope, leave untouched.
       },
 
+      // An async function's tape frame must not remain atop the shared frame
+      // stack while it is suspended. awaitValue restores it before the function
+      // continuation (or a local catch) runs.
+      AwaitExpression(path) {
+        const fn = path.getFunctionParent();
+        if (!fn || !t.isFunctionDeclaration(fn.node) || !fn.node.id || !fn.node.async) return;
+        const argument = path.node.argument;
+        path.node.argument = tapeCall("awaitValue", [argument]);
+      },
+
       VariableDeclarator(path, state) {
         const node = path.node;
         if (!t.isIdentifier(node.id) || !node.init) return;
