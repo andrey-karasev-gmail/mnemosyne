@@ -1,6 +1,6 @@
 {
   "name": "@web4w3/mnemosyne",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "description": "Source-to-source TS transpiler that traces dataflow into a value-provenance DAG, served over MCP.",
   "license": "MIT",
   "repository": {
