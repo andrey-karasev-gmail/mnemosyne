@@ -194,7 +194,8 @@ Chaining black boxes chains the DAG automatically: box B's inputs are box A's ou
 - **Single execution path only** — the tape captures *this* run, not all possible branches.
   (This is intentional for linear reconstruction, but must be communicated clearly.)
 - **Expression-coverage breadth** — TS has many node kinds; the PoC covers a subset. Full
-  coverage (compound assignment, destructuring, template literals, spread, async) is
+  coverage (compound assignment, destructuring, template literals, spread, async forms beyond
+  named async function declarations with basic `await`) is
   incremental "breadth work."
 - **The two genuinely hard parts:**
   1. **Faithful lowering of side-effecting & short-circuit expressions** (`&& || ?? ?:`,
@@ -243,7 +244,11 @@ appear correctly.
   capture; `const`/`let` + simple assignment with name + scope capture; `return`; one linear
   execution path.
 - **Deferred:** short-circuit `&& || ?? ?:`; compound assignment / unary / template literals /
-  destructuring / spread; async/await/generators; loops/aggregation; optional chaining.
+  destructuring / spread; async arrows and methods / generators; loops/aggregation; optional chaining.
+- **Basic `await` support:** named async function declarations detach their tape frame while
+  suspended and restore it before the continuation, so synchronous work between awaits keeps
+  resolving against its own scope. Async arrows, methods, and uncaught async rejection frame
+  cleanup remain outside this limited support.
 
 ### 7.5 How it works, step by step
 

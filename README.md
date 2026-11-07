@@ -198,8 +198,10 @@ See `CLAUDE.md` for the full spec. In scope: binary arithmetic and comparisons, 
 `&& || ??`, generic method calls, function calls, `const`/`let` bindings and simple
 assignment, `return` (including per-attribute tracing of object-literal returns),
 `process.env.*` / module `const` capture, and local (same-repo) `import`/`export` tracing
-across multiple files sharing one tape. Deferred: compound assignment, template literals,
-destructuring, spread, `async`/await, loops, tracing into `node_modules`/external packages.
+across multiple files sharing one tape. Basic `await` in named async function declarations is
+supported, with tape frames suspended and restored around each await. Deferred: async arrows
+and methods, generators, compound assignment, template literals, destructuring, spread, loops,
+and tracing into `node_modules`/external packages.
 
 ### Known limitation
 

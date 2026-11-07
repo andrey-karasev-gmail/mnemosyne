@@ -142,6 +142,28 @@ export class Tape {
     this.frames.push(newFrame(fnName));
   }
 
+  /**
+   * Detach the current traced function while an await is pending. The JS async
+   * function resumes in a later microtask, so leaving its frame on this shared
+   * stack would make synchronous work run in the meantime resolve names against
+   * the suspended function. Restore the frame before the await continuation
+   * executes (including rejection continuations/catches).
+   */
+  awaitValue<T>(value: T): Promise<Awaited<T>> {
+    if (this.frames.length <= 1) return Promise.resolve(value) as Promise<Awaited<T>>;
+    const frame = this.frames.pop()!;
+    return Promise.resolve(value).then(
+      (resolved) => {
+        this.frames.push(frame);
+        return resolved as Awaited<T>;
+      },
+      (error: unknown) => {
+        this.frames.push(frame);
+        throw error;
+      },
+    );
+  }
+
   exitFrame(): void {
     this.frames.pop();
   }
