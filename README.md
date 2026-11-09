@@ -193,6 +193,8 @@ simulating the source on every question.
   of stopping at the package boundary.
 - `docs/EXTERNAL-PROVENANCE.md` — package and AI node architecture, API usage, MCP queries,
   and migration guidance.
+- `docs/FLAGSHIP-DEMO.md` — the insurance-premium walkthrough showing package and AI
+  provenance in one explainable execution DAG.
 
 ## Scope
 
