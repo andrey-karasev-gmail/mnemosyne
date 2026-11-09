@@ -17,7 +17,7 @@
  */
 export { default as mnemosynePlugin } from "./transform";
 export { Tape, __t } from "./runtime";
-export type { TapeNode, Loc, NodeKind, ScopeKind, OperandKind, OperandMeta } from "./runtime";
+export type { TapeNode, Loc, NodeKind, ScopeKind, OperandKind, OperandMeta, PackageCallMetadata, PackageImportMetadata, AICallMetadata } from "./runtime";
 export { toJSON, toMermaid, toDot, subgraphFrom, descendantsOf, safeStringify } from "./export-mermaid";
 
 import { Tape, __t } from "./runtime";

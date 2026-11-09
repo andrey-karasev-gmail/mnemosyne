@@ -35,7 +35,33 @@ export type ScopeKind =
   | "return"
   | "import";
 
-export type NodeKind = "input" | "op" | "call" | "bind" | "return" | "output" | "literal";
+export type NodeKind = "input" | "op" | "call" | "bind" | "return" | "output" | "literal" | "package" | "ai";
+
+/** Stable identity for a third-party package call. `version` is `"unknown"`
+ * when the resolver cannot find a package manifest (for example, a browser bundle). */
+export interface PackageCallMetadata {
+  packageName: string;
+  version: string;
+  functionName: string;
+  executionTimeMs: number;
+  timestamp: string;
+}
+
+export type PackageImportMetadata = Omit<PackageCallMetadata, "executionTimeMs" | "timestamp">;
+
+/** Provider-neutral metadata for an AI invocation. The response is recorded as
+ * the node value; `tokens` may be supplied directly or extracted from a common
+ * SDK `usage`/`usageMetadata` response shape. */
+export interface AICallMetadata {
+  provider: string;
+  model: string;
+  prompt: unknown;
+  temperature?: number;
+  metadata?: Record<string, unknown>;
+  tokens?: number;
+  loc?: Loc;
+  inputMeta?: OperandMeta;
+}
 
 export interface TapeNode {
   id: number;
@@ -47,6 +73,18 @@ export interface TapeNode {
   value: unknown;
   loc?: Loc;
   fn?: string;
+  package?: PackageCallMetadata;
+  ai?: {
+    provider: string;
+    model: string;
+    prompt: unknown;
+    response: unknown;
+    tokens?: number;
+    temperature?: number;
+    metadata?: Record<string, unknown>;
+    executionTimeMs: number;
+    timestamp: string;
+  };
 }
 
 export type OperandKind = "ident" | "literal" | "expr";
@@ -105,6 +143,8 @@ export class Tape {
    * finishes running (see module-loader.ts). Lets an importing module's `importBinding`
    * attach a real ancestry edge instead of falling back to an opaque leaf. */
   private moduleExports = new Map<string, Map<string, number>>();
+  private packageFunctions = new WeakMap<Function, PackageImportMetadata>();
+  private packageNamespaces = new WeakMap<object, Omit<PackageImportMetadata, "functionName">>();
 
   private currentFrame(): Frame {
     return this.frames[this.frames.length - 1];
@@ -115,6 +155,33 @@ export class Tape {
     this.nodes.push({ id, ...partial });
     this.lastId = id;
     return id;
+  }
+
+  /** Mark a named import without wrapping or changing the function itself. */
+  packageFunction<T>(value: T, meta: PackageImportMetadata): T {
+    if (typeof value === "function") this.packageFunctions.set(value, meta);
+    return value;
+  }
+
+  /** Mark a default/namespace-like package object so `pkg.fn()` is recognized. */
+  packageNamespace<T>(value: T, meta: Omit<PackageCallMetadata, "functionName">): T {
+    if ((typeof value === "object" && value !== null) || typeof value === "function") {
+      this.packageNamespaces.set(value as object, meta);
+    }
+    return value;
+  }
+
+  private recordPackage(result: unknown, inputs: number[], meta: PackageImportMetadata, loc?: Loc, startedAt = new Date(), startedMs = Date.now()): void {
+    this.addNode({
+      kind: "package",
+      op: meta.functionName,
+      label: `${meta.packageName}.${meta.functionName}`,
+      scope: "temp",
+      inputs,
+      value: result,
+      loc,
+      package: { ...meta, executionTimeMs: Date.now() - startedMs, timestamp: startedAt.toISOString() },
+    });
   }
 
   /** Resolve an operand to the id of the node that produced its value. */
@@ -329,6 +396,8 @@ export class Tape {
     // at here — otherwise the callee's frame leaks onto the stack forever and
     // corrupts scope resolution for the rest of the run.
     const frameDepthBeforeCall = this.frames.length;
+    const startedAt = new Date();
+    const startedMs = Date.now();
     let result: unknown;
     let opName: string;
     try {
@@ -346,8 +415,67 @@ export class Tape {
       throw err;
     }
 
-    this.addNode({ kind: "call", op: opName, label: meta.label, scope: "temp", inputs, value: result, loc: meta.loc });
+    const taggedFunction = typeof fnOrName === "function" ? this.packageFunctions.get(fnOrName) : undefined;
+    const taggedNamespace =
+      (typeof receiver === "object" && receiver !== null) || typeof receiver === "function"
+        ? this.packageNamespaces.get(receiver as object)
+        : undefined;
+    if (taggedFunction) {
+      this.recordPackage(result, inputs, taggedFunction, meta.loc, startedAt, startedMs);
+    } else if (taggedNamespace && typeof fnOrName === "string") {
+      this.recordPackage(result, inputs, { ...taggedNamespace, functionName: fnOrName }, meta.loc, startedAt, startedMs);
+    } else {
+      this.addNode({ kind: "call", op: opName, label: meta.label, scope: "temp", inputs, value: result, loc: meta.loc });
+    }
     return result;
+  }
+
+  /**
+   * Execute an AI SDK call and record a first-class node once its response is
+   * available. This works with synchronous and Promise-returning SDK methods,
+   * does not inspect provider internals, and preserves the original result.
+   */
+  ai<T>(execute: () => T, meta: AICallMetadata): T {
+    const promptInput = this.resolve(meta.inputMeta, meta.prompt);
+    const startedAt = new Date();
+    const startedMs = Date.now();
+    const record = (response: unknown): unknown => {
+      const responseRecord = response as { usage?: Record<string, unknown>; usageMetadata?: Record<string, unknown> } | null;
+      const usage = responseRecord?.usage ?? responseRecord?.usageMetadata;
+      const totalTokens = usage?.total_tokens ?? usage?.totalTokens;
+      const inferredTokens = typeof totalTokens === "number"
+        ? totalTokens
+        : usage && typeof usage === "object"
+          ? [usage.input_tokens, usage.output_tokens, usage.inputTokens, usage.outputTokens]
+              .filter((n): n is number => typeof n === "number")
+              .reduce((sum, n) => sum + n, 0)
+          : undefined;
+      this.addNode({
+        kind: "ai",
+        label: `${meta.provider}.${meta.model}`,
+        scope: "temp",
+        inputs: promptInput === undefined ? [] : [promptInput],
+        value: response,
+        loc: meta.loc,
+        ai: {
+          provider: meta.provider,
+          model: meta.model,
+          prompt: meta.prompt,
+          response,
+          tokens: meta.tokens ?? inferredTokens,
+          temperature: meta.temperature,
+          metadata: meta.metadata,
+          executionTimeMs: Date.now() - startedMs,
+          timestamp: startedAt.toISOString(),
+        },
+      });
+      return response;
+    };
+    const result = execute();
+    if (result && typeof (result as unknown as { then?: unknown }).then === "function") {
+      return Promise.resolve(result).then(record) as T;
+    }
+    return record(result) as T;
   }
 
   /** A single named attribute of an object literal returned from a traced function. */
