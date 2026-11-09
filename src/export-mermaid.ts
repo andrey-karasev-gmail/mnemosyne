@@ -86,6 +86,10 @@ function nodeLabel(node: TapeNode): string {
       return `${node.op} -> ${formatValue(node.value)}${loc}`;
     case "call":
       return `.${node.op}() -> ${formatValue(node.value)}${loc}`;
+    case "package":
+      return `${node.package?.packageName}@${node.package?.version}.${node.package?.functionName}() -> ${formatValue(node.value)}${loc}`;
+    case "ai":
+      return `AI ${node.ai?.provider}/${node.ai?.model} -> ${formatValue(node.value)}${loc}`;
     case "output":
       return `${node.label} = ${formatValue(node.value)}${loc}`;
     case "return":

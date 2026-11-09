@@ -19,6 +19,7 @@
 import type { NodePath, PluginObj } from "@babel/core";
 import * as t from "@babel/types";
 import { isRelativeSpecifier, resolveLocalModule } from "./resolve-module";
+import { resolvePackageVersion } from "./package-metadata";
 
 const TAPE_ID = "__t";
 
@@ -136,6 +137,7 @@ export default function mnemosynePlugin(): PluginObj {
 
         const isLocal = isRelativeSpecifier(specifier);
         const modulePath = isLocal ? resolveLocalModule(filename, specifier) : specifier;
+        const packageVersion = isLocal ? undefined : resolvePackageVersion(specifier, filename);
         const moduleTempId = path.scope.generateUidIdentifier("mod");
 
         const statements: t.Statement[] = [
@@ -158,9 +160,23 @@ export default function mnemosynePlugin(): PluginObj {
           const accessedValue = t.memberExpression(t.cloneNode(moduleTempId), t.identifier(exportName));
 
           if (!isLocal) {
-            // Opaque dependency: no origin module to attach an edge to.
+            // Third-party imports remain opaque internally, but their calls are
+            // first-class package provenance nodes at runtime.
+            const packageMeta = t.objectExpression([
+              t.objectProperty(t.identifier("packageName"), t.stringLiteral(specifier)),
+              t.objectProperty(t.identifier("version"), t.stringLiteral(packageVersion!)),
+            ]);
+            const wrapped = t.isImportSpecifier(spec)
+              ? tapeCall("packageFunction", [
+                  accessedValue,
+                  t.objectExpression([
+                    ...packageMeta.properties,
+                    t.objectProperty(t.identifier("functionName"), t.stringLiteral(exportName)),
+                  ]),
+                ])
+              : tapeCall("packageNamespace", [accessedValue, packageMeta]);
             statements.push(
-              t.variableDeclaration("const", [t.variableDeclarator(t.identifier(localName), accessedValue)]),
+              t.variableDeclaration("const", [t.variableDeclarator(t.identifier(localName), wrapped)]),
             );
             continue;
           }
