@@ -113,7 +113,7 @@ server.registerTool("showPackageUsage", {
 }, async ({ packageName }) => {
   const nodes = ensureTrace();
   const calls = nodes.filter((node) => node.kind === "package" && node.package?.packageName === packageName);
-  return textResult(serialize({ packageName, functionsUsed: Array.from(new Set(calls.map((node) => node.package?.functionName))), inputs: calls.flatMap((node) => node.inputs.map((id) => nodes.find((candidate) => candidate.id === id)).filter(Boolean).map((node) => describeNode(node!))), outputs: calls.map(describeNode), callCount: calls.length }));
+  return textResult(serialize({ packageName, functionsUsed: Array.from(new Set(calls.map((node) => node.package?.functionName))), inputs: calls.flatMap((node) => node.inputs.map((id) => nodes.find((candidate) => candidate.id === id)).filter(Boolean).map((node) => describeNode(node!))), outputs: calls.map((node) => describeNode(node)), callCount: calls.length }));
 });
 
 server.registerTool("showAIUsage", {
@@ -188,7 +188,7 @@ server.registerTool("simulateAIRemoval", {
   const affected = uniqueNodes(calls.flatMap((node) => descendantsOf(nodes, node.id)));
   const affectedIds = new Set(affected.map((node) => node.id));
   const alternatives = nodes.filter((node) => !affectedIds.has(node.id) && (node.kind === "package" || node.kind === "call" || node.kind === "op"));
-  return textResult(serialize({ model, affectedDecisions: decisionsAndOutputs(affected).filter((node) => node.kind !== "output").map(describeNode), affectedOutputs: affected.filter((node) => node.kind === "output").map(describeNode), alternativePaths: alternatives.map(describeNode), caveat: "Alternative paths are observed graph paths outside the removed model's descendants; this does not recompute program behavior." }));
+  return textResult(serialize({ model, affectedDecisions: decisionsAndOutputs(affected).filter((node) => node.kind !== "output").map(describeNode), affectedOutputs: affected.filter((node) => node.kind === "output").map(describeNode), alternativePaths: alternatives.map(describeNode), caveat: "Alternate paths are observed graph paths outside the removed model's descendants; this does not recompute program behavior." }));
 });
 
 /** When a bare name matched more than one node, tell the caller so it can re-query precisely. */
