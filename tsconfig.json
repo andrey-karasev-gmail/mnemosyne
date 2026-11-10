@@ -14,5 +14,5 @@
     "declaration": true,
     "sourceMap": true
   },
-  "include": ["src"]
+  "include": ["src/index.ts", "src/esbuild-plugin.ts"]
 }
