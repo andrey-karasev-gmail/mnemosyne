@@ -1,31 +1,69 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="740" viewBox="0 0 1400 740" role="img" aria-labelledby="title desc">
-  <title id="title">Mnemosyne runtime provenance graph for an insurance premium incident</title>
-  <desc id="desc">A layered graph with runtime configuration and AI score feeding a risk adjustment, then a premium calculation, package rounding, and final result.</desc>
+<svg xmlns="http://www.w3.org/2000/svg" width="1500" height="620" viewBox="0 0 1500 620" role="img" aria-labelledby="title desc">
+  <title id="title">Runtime provenance for the unexpected insurance premium</title>
+  <desc id="desc">A clean causal graph: the base premium, GPT-5 risk score, and runtime risk weight feed a risk adjustment and final calculation. Lodash rounds the result to the premium of 863 dollars and 45 cents.</desc>
   <defs>
     <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#64748b"/></marker>
+    <filter id="shadow" x="-15%" y="-20%" width="130%" height="145%"><feDropShadow dx="0" dy="5" stdDeviation="7" flood-color="#0f172a" flood-opacity=".10"/></filter>
     <style>
-      .bg{fill:#f8fafc}.heading{font:700 28px Inter,Arial,sans-serif;fill:#0f172a}.caption{font:15px Inter,Arial,sans-serif;fill:#475569}
-      .edge{fill:none;stroke:#64748b;stroke-width:2;marker-end:url(#arrow)}.box{rx:12;stroke-width:2}.t{font:600 16px Inter,Arial,sans-serif;text-anchor:middle}.s{font:13px Inter,Arial,sans-serif;text-anchor:middle}
-      .input{fill:#eff6ff;stroke:#3b82f6}.ai{fill:#faf5ff;stroke:#9333ea}.config{fill:#fffbeb;stroke:#d97706}.op{fill:#f1f5f9;stroke:#64748b}.pkg{fill:#ecfdf5;stroke:#059669}.out{fill:#dcfce7;stroke:#16a34a}
-      .dark{fill:#1e3a8a}.purple{fill:#6b21a8}.amber{fill:#92400e}.slate{fill:#1e293b}.green{fill:#065f46}
+      .bg{fill:#f8fafc}.title{font:700 28px Inter,Arial,sans-serif;fill:#0f172a}.subtitle{font:15px Inter,Arial,sans-serif;fill:#475569}
+      .edge{fill:none;stroke:#64748b;stroke-width:2.5;marker-end:url(#arrow)}.node{filter:url(#shadow);stroke-width:2;rx:14}
+      .heading{font:650 17px Inter,Arial,sans-serif;text-anchor:middle}.detail{font:14px Inter,Arial,sans-serif;text-anchor:middle}
+      .value{font:700 16px Inter,Arial,sans-serif;text-anchor:middle}.blue{fill:#eff6ff;stroke:#3b82f6}.blueText{fill:#1e3a8a}
+      .purple{fill:#faf5ff;stroke:#9333ea}.purpleText{fill:#6b21a8}.amber{fill:#fffbeb;stroke:#d97706}.amberText{fill:#92400e}
+      .slate{fill:#f1f5f9;stroke:#64748b}.slateText{fill:#1e293b}.teal{fill:#ecfdf5;stroke:#059669}.tealText{fill:#065f46}
+      .green{fill:#dcfce7;stroke:#16a34a}.greenText{fill:#166534}.edgeLabel{font:13px Inter,Arial,sans-serif;fill:#475569}
     </style>
   </defs>
-  <rect class="bg" width="1400" height="740" rx="20"/>
-  <text class="heading" x="48" y="54">Runtime provenance graph · premium result 863.45</text>
-  <text class="caption" x="48" y="82">Nodes show recorded values; arrows show observed input dependencies in this execution.</text>
-  <path class="edge" d="M190 190 L350 310"/><path class="edge" d="M190 320 L350 330"/><path class="edge" d="M190 460 L350 355"/>
-  <path class="edge" d="M520 330 L670 330"/><path class="edge" d="M190 590 L350 350"/>
-  <path class="edge" d="M520 330 C590 330 590 490 670 490"/><path class="edge" d="M830 330 L980 410"/><path class="edge" d="M830 490 L980 430"/>
-  <path class="edge" d="M1140 420 L1260 420"/>
-  <rect class="box input" x="40" y="150" width="150" height="80"/><text class="t dark" x="115" y="182">Base premium</text><text class="s dark" x="115" y="205">$715.20 · node 7</text>
-  <rect class="box input" x="40" y="280" width="150" height="80"/><text class="t dark" x="115" y="312">AI score</text><text class="s dark" x="115" y="335">0.63 · node 39</text>
-  <rect class="box config" x="40" y="420" width="150" height="80"/><text class="t amber" x="115" y="452">Risk weight</text><text class="s amber" x="115" y="475">0.3290124 · node 24</text>
-  <rect class="box input" x="40" y="550" width="150" height="80"/><text class="t dark" x="115" y="582">Policy / rating</text><text class="s dark" x="115" y="605">other traced inputs</text>
-  <rect class="box op" x="350" y="285" width="170" height="90"/><text class="t slate" x="435" y="319">riskAdjustment</text><text class="s slate" x="435" y="345">1.2072778 · node 46</text>
-  <rect class="box op" x="670" y="285" width="160" height="90"/><text class="t slate" x="750" y="319">premium × factor</text><text class="s slate" x="750" y="345">863.445 · node 55</text>
-  <rect class="box op" x="670" y="445" width="160" height="90"/><text class="t slate" x="750" y="479">other calculation</text><text class="s slate" x="750" y="505">independent branch</text>
-  <rect class="box pkg" x="980" y="375" width="160" height="90"/><text class="t green" x="1060" y="409">lodash.round</text><text class="s green" x="1060" y="435">863.45 · node 60</text>
-  <rect class="box out" x="1260" y="380" width="120" height="80"/><text class="t green" x="1320" y="412">premium</text><text class="s green" x="1320" y="436">863.45 · node 61</text>
-  <rect class="box ai" x="40" y="660" width="150" height="56"/><text class="t purple" x="115" y="694">AI provenance · OpenAI / GPT-5</text>
-  <text class="caption" x="230" y="690">This is an incident illustration; node IDs and values must be replaced with those from the actual captured trace.</text>
+  <rect class="bg" width="1500" height="620" rx="22"/>
+  <text class="title" x="52" y="58">Why did this premium become $863.45?</text>
+  <text class="subtitle" x="52" y="88">Runtime provenance · one observed execution · arrows point from contributing values to the result</text>
+
+  <!-- Inputs converge on the risk adjustment. -->
+  <path class="edge" d="M285 180 C330 180 330 267 375 267"/>
+  <path class="edge" d="M285 315 L375 315"/>
+  <path class="edge" d="M285 450 C330 450 330 363 375 363"/>
+  <path class="edge" d="M625 315 L710 315"/>
+  <path class="edge" d="M950 315 L1030 315"/>
+  <path class="edge" d="M1250 315 L1310 315"/>
+
+  <rect class="node blue" x="55" y="135" width="230" height="90"/>
+  <text class="heading blueText" x="170" y="169">Base premium</text>
+  <text class="value blueText" x="170" y="198">$715.20</text>
+
+  <rect class="node purple" x="55" y="270" width="230" height="90"/>
+  <text class="heading purpleText" x="170" y="304">AI risk score</text>
+  <text class="detail purpleText" x="170" y="333">OpenAI · GPT-5 · 0.63</text>
+
+  <rect class="node amber" x="55" y="405" width="230" height="90"/>
+  <text class="heading amberText" x="170" y="439">Runtime configuration</text>
+  <text class="detail amberText" x="170" y="468">AI_RISK_WEIGHT = 0.3290124</text>
+
+  <rect class="node slate" x="375" y="270" width="250" height="90"/>
+  <text class="heading slateText" x="500" y="304">Risk adjustment</text>
+  <text class="detail slateText" x="500" y="333">1 + (0.63 × 0.3290124)</text>
+  <text class="value slateText" x="500" y="352">1.2072778</text>
+
+  <rect class="node slate" x="710" y="270" width="240" height="90"/>
+  <text class="heading slateText" x="830" y="304">Adjusted premium</text>
+  <text class="detail slateText" x="830" y="333">$715.20 × 1.2072778</text>
+  <text class="value slateText" x="830" y="352">$863.445</text>
+
+  <rect class="node teal" x="1030" y="270" width="220" height="90"/>
+  <text class="heading tealText" x="1140" y="304">lodash.round</text>
+  <text class="detail tealText" x="1140" y="333">round($863.445, 2)</text>
+  <text class="value tealText" x="1140" y="352">$863.45</text>
+
+  <rect class="node green" x="1310" y="280" width="150" height="70"/>
+  <text class="heading greenText" x="1385" y="310">Premium</text>
+  <text class="value greenText" x="1385" y="337">$863.45</text>
+
+  <line x1="55" y1="545" x2="95" y2="545" stroke="#3b82f6" stroke-width="4"/>
+  <text class="subtitle" x="105" y="550">Observed value</text>
+  <line x1="285" y1="545" x2="325" y2="545" stroke="#9333ea" stroke-width="4"/>
+  <text class="subtitle" x="335" y="550">AI call</text>
+  <line x1="435" y1="545" x2="475" y2="545" stroke="#d97706" stroke-width="4"/>
+  <text class="subtitle" x="485" y="550">Configuration input</text>
+  <line x1="650" y1="545" x2="690" y2="545" stroke="#059669" stroke-width="4"/>
+  <text class="subtitle" x="700" y="550">Package boundary</text>
+  <text class="subtitle" x="52" y="590">Illustrative incident trace. Replace sample IDs and values with those captured from the actual run.</text>
 </svg>
