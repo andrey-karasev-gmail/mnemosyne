@@ -88,6 +88,8 @@ function decisionsAndOutputs(nodes: TapeNode[]): TapeNode[] {
   return nodes.filter((node) => node.kind === "output" || node.scope === "return" || /decision|result/i.test(node.label));
 }
 
+const server = new McpServer({ name: "mnemosyne", version: "0.1.0" });
+
 server.registerTool("showPackages", {
   title: "Show packages",
   description: "List packages observed in this trace with installed version and invocation count.",
@@ -195,8 +197,6 @@ function ambiguityNote(name: string, candidates: TapeNode[]): string | undefined
   const alternatives = candidates.map((n) => `${n.label} (${n.kind}${n.fn ? ` in ${n.fn}` : ""}, id ${n.id})`);
   return `"${name}" matched ${candidates.length} nodes; showing the most recent. Others: ${alternatives.join("; ")}. Re-query with a qualified "fnName.attr" name for precision.`;
 }
-
-const server = new McpServer({ name: "mnemosyne", version: "0.1.0" });
 
 server.registerTool(
   "run_trace",
