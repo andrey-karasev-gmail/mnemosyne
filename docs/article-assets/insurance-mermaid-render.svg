@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="650" viewBox="0 0 1400 650" role="img" aria-labelledby="title desc">
+  <title id="title">Mnemosyne insurance premium provenance, Mermaid render</title>
+  <desc id="desc">A left-to-right provenance diagram showing the base premium, GPT-5 score, risk weight, risk adjustment, lodash rounding, and final premium.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#94a3b8"/></marker>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="150%"><feDropShadow dx="0" dy="7" stdDeviation="9" flood-color="#020617" flood-opacity=".25"/></filter>
+    <style>
+      .bg{fill:#0b1220}.title{font:700 29px Inter,Arial,sans-serif;fill:#f8fafc}.sub{font:15px Inter,Arial,sans-serif;fill:#94a3b8}
+      .edge{fill:none;stroke:#94a3b8;stroke-width:2.5;marker-end:url(#arrow)}.node{filter:url(#shadow);rx:16;stroke-width:2}
+      .label{font:600 17px Inter,Arial,sans-serif;fill:#f8fafc;text-anchor:middle}.value{font:14px Inter,Arial,sans-serif;fill:#cbd5e1;text-anchor:middle}
+      .ordinary{fill:#172554;stroke:#60a5fa}.ai{fill:#3b0764;stroke:#c084fc}.config{fill:#422006;stroke:#fbbf24}.package{fill:#052e2b;stroke:#2dd4bf}.result{fill:#064e3b;stroke:#34d399}
+    </style>
+  </defs>
+  <rect class="bg" width="1400" height="650" rx="24"/>
+  <text class="title" x="54" y="62">Why did this premium become $863.45?</text>
+  <text class="sub" x="54" y="91">Observed provenance from one instrumented execution · values are illustrative incident data</text>
+  <path class="edge" d="M270 208 C340 208 348 298 410 298"/><path class="edge" d="M270 410 C340 410 348 330 410 330"/>
+  <path class="edge" d="M620 314 C700 314 700 208 770 208"/><path class="edge" d="M620 314 C700 314 700 410 770 410"/>
+  <path class="edge" d="M960 208 C1015 208 1020 297 1080 297"/><path class="edge" d="M960 410 C1015 410 1020 330 1080 330"/>
+  <path class="edge" d="M1240 315 L1290 315"/>
+  <rect class="node ordinary" x="70" y="160" width="200" height="96"/><text class="label" x="170" y="198">Base premium</text><text class="value" x="170" y="226">$715.20</text>
+  <rect class="node ai" x="70" y="362" width="200" height="96"/><text class="label" x="170" y="400">GPT-5 risk score</text><text class="value" x="170" y="428">0.63 · 123 tokens</text>
+  <rect class="node config" x="410" y="266" width="210" height="96"/><text class="label" x="515" y="304">Risk adjustment</text><text class="value" x="515" y="332">1 + 0.63 × 0.3290124</text>
+  <rect class="node config" x="770" y="160" width="190" height="96"/><text class="label" x="865" y="198">Runtime weight</text><text class="value" x="865" y="226">AI_RISK_WEIGHT = 0.3290124</text>
+  <rect class="node ordinary" x="770" y="362" width="190" height="96"/><text class="label" x="865" y="400">Adjusted amount</text><text class="value" x="865" y="428">$863.445</text>
+  <rect class="node package" x="1080" y="266" width="160" height="96"/><text class="label" x="1160" y="304">lodash.round</text><text class="value" x="1160" y="332">→ $863.45</text>
+  <rect class="node result" x="1290" y="276" width="100" height="76"/><text class="label" x="1340" y="307">Premium</text><text class="value" x="1340" y="333">$863.45</text>
+  <text class="sub" x="54" y="590">Blue: values · gold: configuration · purple: AI · teal: package boundary · green: result</text>
+</svg>
