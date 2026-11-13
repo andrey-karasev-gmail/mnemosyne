@@ -15,12 +15,12 @@ import { toJSON, toMermaid } from "./export-mermaid";
 
 const OUTPUT_DIR = path.join(__dirname, "..", "output");
 
-function main(): void {
+async function main(): Promise<void> {
   const entryArg = process.argv[2];
   const entryFile = entryArg ? path.resolve(process.cwd(), entryArg) : EXAMPLE_PATH;
   const suffix = entryFile === EXAMPLE_PATH ? "" : `-${path.basename(path.dirname(entryFile))}`;
 
-  const result = runTraceOnce(undefined, entryFile);
+  const result = await runTraceOnce(undefined, entryFile);
 
   console.log(`Identical output (plain vs. instrumented): ${result.identicalOutput}`);
   if (!result.identicalOutput) {
@@ -39,4 +39,4 @@ function main(): void {
   console.log(`Wrote ${path.relative(process.cwd(), jsonPath)} and ${path.relative(process.cwd(), mmdPath)}`);
 }
 
-main();
+void main();
