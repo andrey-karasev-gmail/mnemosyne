@@ -32,3 +32,11 @@ export function installGlobalTape(tape: Tape = __t): void {
   (globalThis as unknown as { __t: Tape }).__t = tape;
 }
 
+/**
+ * Programmatic tracing entry point for consumers that run a trace in-process (rather
+ * than through the CLI or the MCP server): compiles and runs the entry file plain and
+ * instrumented, then returns the provenance graph and the behavior-preservation verdict.
+ */
+export { runTraceOnce } from "./pipeline";
+export type { TraceResult } from "./pipeline";
+
