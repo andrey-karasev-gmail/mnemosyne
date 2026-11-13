@@ -10,8 +10,10 @@ Install the example packages at the documented versions:
 
 ```sh
 npm install --no-save lodash@4.17.21 date-fns@2.30.0
-npx ts-node --transpile-only examples/insurance-premium.ts
+npx ts-node --transpile-only src/run-example.ts examples/insurance-premium.ts
 ```
+
+The example is written to be traced, so it runs through the pipeline rather than directly: the pipeline installs the shared tape (`__t`) the source declares, runs the program plain and instrumented, verifies the outputs match, and writes the trace to `output/trace-examples.json` and `output/trace-examples.mmd`.
 
 The instrumented implementation is in [`examples/insurance-premium.ts`](../examples/insurance-premium.ts). The source imports `lodash/round` and `date-fns/differenceInCalendarDays`; the package import metadata resolver should resolve their installed versions. Package calls remain opaque: Mnemosyne records their inputs, outputs, source locations, and durations without tracing library internals.
 

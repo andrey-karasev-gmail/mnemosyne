@@ -1,10 +1,12 @@
 /**
  * Mnemosyne flagship demonstration: an explainable insurance premium decision.
  *
- * Run with lodash 4.17.21 and date-fns 2.30.0 installed. The AI response is a
- * deterministic fixture so the example is repeatable and needs no API key.
- * Replace assessRiskFixture with a real provider call wrapped in `__t.ai()` to
- * trace an actual model invocation.
+ * Run through the tracing pipeline, which installs the shared tape this file
+ * declares below, with lodash 4.17.21 and date-fns 2.30.0 installed:
+ *   npx ts-node --transpile-only src/run-example.ts examples/insurance-premium.ts
+ * The AI response is a deterministic fixture so the example is repeatable and
+ * needs no API key. Replace assessRiskFixture with a real provider call wrapped
+ * in `__t.ai()` to trace an actual model invocation.
  */
 import { round } from "lodash";
 import { differenceInCalendarDays } from "date-fns";
@@ -114,12 +116,8 @@ async function assessApplication(input: Application): Promise<PremiumDecision> {
 }
 
 async function main(): Promise<void> {
-  __t.reset();
   const decision = await assessApplication(application);
   console.log(JSON.stringify(decision, null, 2));
-  console.log(`Trace nodes: ${__t.nodes.length}`);
-  console.log(`Package nodes: ${__t.nodes.filter((node) => node.kind === "package").length}`);
-  console.log(`AI nodes: ${__t.nodes.filter((node) => node.kind === "ai").length}`);
 }
 
 void main();

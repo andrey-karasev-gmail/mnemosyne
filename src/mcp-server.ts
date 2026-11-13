@@ -20,9 +20,9 @@ import type { TapeNode } from "./runtime";
 
 let cachedNodes: TapeNode[] | null = null;
 
-function ensureTrace(): TapeNode[] {
+async function ensureTrace(): Promise<TapeNode[]> {
   if (!cachedNodes) {
-    cachedNodes = runTraceOnce().nodes;
+    cachedNodes = (await runTraceOnce()).nodes;
   }
   return cachedNodes;
 }
@@ -95,7 +95,7 @@ server.registerTool("showPackages", {
   description: "List packages observed in this trace with installed version and invocation count.",
   inputSchema: {},
 }, async () => {
-  const calls = ensureTrace().filter((node) => node.kind === "package");
+  const calls = await ensureTrace().filter((node) => node.kind === "package");
   const grouped = new Map<string, { packageName: string; version: string; usageCount: number }>();
   for (const node of calls) {
     const key = `${node.package?.packageName ?? "unknown"}@${node.package?.version ?? "unknown"}`;
@@ -111,7 +111,7 @@ server.registerTool("showPackageUsage", {
   description: "Show observed calls, called exports, argument inputs, result outputs, and call count for a package.",
   inputSchema: { packageName: z.string().min(1) },
 }, async ({ packageName }) => {
-  const nodes = ensureTrace();
+  const nodes = await ensureTrace();
   const calls = nodes.filter((node) => node.kind === "package" && node.package?.packageName === packageName);
   return textResult(serialize({ packageName, functionsUsed: Array.from(new Set(calls.map((node) => node.package?.functionName))), inputs: calls.flatMap((node) => node.inputs.map((id) => nodes.find((candidate) => candidate.id === id)).filter(Boolean).map((node) => describeNode(node!))), outputs: calls.map((node) => describeNode(node)), callCount: calls.length }));
 });
@@ -121,7 +121,7 @@ server.registerTool("showAIUsage", {
   description: "Aggregate observed AI calls by provider and model, including calls and known token consumption.",
   inputSchema: {},
 }, async () => {
-  const calls = ensureTrace().filter((node) => node.kind === "ai");
+  const calls = await ensureTrace().filter((node) => node.kind === "ai");
   const grouped = new Map<string, { provider: string; model: string; callCount: number; tokenConsumption: number }>();
   for (const node of calls) {
     const provider = node.ai?.provider ?? "unknown";
@@ -140,7 +140,7 @@ server.registerTool("explainResult", {
   description: "Return the full upstream provenance chain for a tape result node id.",
   inputSchema: { resultId: z.number().int().nonnegative() },
 }, async ({ resultId }) => {
-  const nodes = ensureTrace();
+  const nodes = await ensureTrace();
   const target = resolveRequired(nodes, resultId);
   return textResult(serialize(target ? { target: describeNode(target), provenance: subgraphFrom(nodes, resultId).map(describeNode), diagram: toMermaid(subgraphFrom(nodes, resultId)) } : { error: `No result node with id ${resultId}` }));
 });
@@ -150,7 +150,7 @@ server.registerTool("findDependencies", {
   description: "Find every package node in the ancestry of a result node.",
   inputSchema: { resultId: z.number().int().nonnegative() },
 }, async ({ resultId }) => {
-  const nodes = ensureTrace();
+  const nodes = await ensureTrace();
   if (!resolveRequired(nodes, resultId)) return textResult(serialize({ error: `No result node with id ${resultId}` }));
   const ancestry = subgraphFrom(nodes, resultId);
   return textResult(serialize({ resultId, packages: ancestry.filter((node) => node.kind === "package").map(describeNode) }));
@@ -161,7 +161,7 @@ server.registerTool("findAIInfluence", {
   description: "Find every AI node in the ancestry of a result node.",
   inputSchema: { resultId: z.number().int().nonnegative() },
 }, async ({ resultId }) => {
-  const nodes = ensureTrace();
+  const nodes = await ensureTrace();
   if (!resolveRequired(nodes, resultId)) return textResult(serialize({ error: `No result node with id ${resultId}` }));
   const ancestry = subgraphFrom(nodes, resultId);
   return textResult(serialize({ resultId, aiNodes: ancestry.filter((node) => node.kind === "ai").map(describeNode) }));
@@ -172,7 +172,7 @@ server.registerTool("simulatePackageRemoval", {
   description: "Report traced descendants, outputs, and decision-like values affected by removing a package. This is a dynamic trace impact estimate.",
   inputSchema: { packageName: z.string().min(1) },
 }, async ({ packageName }) => {
-  const nodes = ensureTrace();
+  const nodes = await ensureTrace();
   const calls = nodes.filter((node) => node.kind === "package" && node.package?.packageName === packageName);
   const affected = uniqueNodes(calls.flatMap((node) => descendantsOf(nodes, node.id)));
   return textResult(serialize({ packageName, affectedNodes: affected.map(describeNode), affectedOutputs: affected.filter((node) => node.kind === "output").map(describeNode), affectedBusinessDecisions: decisionsAndOutputs(affected).map(describeNode) }));
@@ -183,7 +183,7 @@ server.registerTool("simulateAIRemoval", {
   description: "Report traced outputs and decisions downstream of a model, plus unaffected alternate ancestry paths visible in the graph.",
   inputSchema: { model: z.string().min(1) },
 }, async ({ model }) => {
-  const nodes = ensureTrace();
+  const nodes = await ensureTrace();
   const calls = nodes.filter((node) => node.kind === "ai" && node.ai?.model === model);
   const affected = uniqueNodes(calls.flatMap((node) => descendantsOf(nodes, node.id)));
   const affectedIds = new Set(affected.map((node) => node.id));
@@ -212,7 +212,7 @@ server.registerTool(
     },
   },
   async ({ envOverrides }) => {
-    const result = runTraceOnce(envOverrides);
+    const result = await runTraceOnce(envOverrides);
     cachedNodes = result.nodes;
     return textResult(
       safeStringify(
@@ -238,7 +238,7 @@ server.registerTool(
     },
   },
   async ({ name }) => {
-    const nodes = ensureTrace();
+    const nodes = await ensureTrace();
     const { target, candidates } = resolveNode(nodes, name);
     if (!target) {
       return textResult(safeStringify({ error: `No node found for "${name}"` }));
@@ -270,7 +270,7 @@ server.registerTool(
     },
   },
   async ({ name, direction }) => {
-    const nodes = ensureTrace();
+    const nodes = await ensureTrace();
     const { target, candidates } = resolveNode(nodes, name);
     if (!target) {
       return textResult(safeStringify({ error: `No node found for "${name}"` }));
@@ -301,7 +301,7 @@ server.registerTool(
     },
   },
   async ({ name }) => {
-    const nodes = ensureTrace();
+    const nodes = await ensureTrace();
     if (!name) {
       return textResult(toMermaid(nodes));
     }
@@ -321,7 +321,7 @@ server.registerTool(
     inputSchema: { packageName: z.string().optional().describe("Optional npm package name") },
   },
   async ({ packageName }) => {
-    const nodes = ensureTrace().filter((node) => node.kind === "package" && (!packageName || node.package?.packageName === packageName));
+    const nodes = await ensureTrace().filter((node) => node.kind === "package" && (!packageName || node.package?.packageName === packageName));
     return textResult(safeStringify({ packageName, callCount: nodes.length, nodes: nodes.map(describeNode) }, 2));
   },
 );
@@ -334,7 +334,7 @@ server.registerTool(
     inputSchema: { packageName: z.string().describe("npm package name") },
   },
   async ({ packageName }) => {
-    const nodes = ensureTrace();
+    const nodes = await ensureTrace();
     const calls = nodes.filter((node) => node.kind === "package" && node.package?.packageName === packageName);
     const affected = Array.from(new Map(calls.flatMap((call) => descendantsOf(nodes, call.id)).map((node) => [node.id, node])).values());
     return textResult(safeStringify({
@@ -359,7 +359,7 @@ server.registerTool(
     },
   },
   async ({ provider, model }) => {
-    const nodes = ensureTrace().filter((node) => node.kind === "ai" &&
+    const nodes = await ensureTrace().filter((node) => node.kind === "ai" &&
       (!provider || node.ai?.provider === provider) && (!model || node.ai?.model === model));
     return textResult(safeStringify({ provider, model, callCount: nodes.length, nodes: nodes.map(describeNode) }, 2));
   },
@@ -374,7 +374,7 @@ server.registerTool(
     inputSchema: {},
   },
   async () => {
-    const nodes = ensureTrace();
+    const nodes = await ensureTrace();
     const inputs = nodes.filter((n) => n.kind === "input").map(describeNode);
     const outputs = nodes.filter((n) => n.kind === "output").map(describeNode);
     const blackBoxes = Array.from(new Set(nodes.map((n) => n.fn).filter((fn): fn is string => Boolean(fn))));
