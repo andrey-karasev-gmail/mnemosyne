@@ -2,7 +2,8 @@
 
 A TypeScript **source-to-source transpiler** that instruments regular TS code to record a
 **linear tape** of every operation at runtime, reconstructing the full value-provenance path
-across one or more "black box" functions — including internal local/global variable names.
+— across variables, npm package calls, and AI calls — and serves the resulting provenance
+DAG over **MCP (16 tools)** for debugging, audit, and cost analysis.
 
 Named after Mnemosyne, the Greek goddess of memory.
 
