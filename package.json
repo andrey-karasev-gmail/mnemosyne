@@ -1,7 +1,7 @@
 {
   "name": "@web4w3/mnemosyne",
   "version": "0.1.12",
-  "description": "Source-to-source TS transpiler that traces dataflow into a value-provenance DAG, served over MCP.",
+  "description": "Source-to-source TypeScript transpiler that traces runtime dataflow into a value-provenance DAG \u2014 across variables, npm package calls, and AI calls \u2014 served over MCP (16 tools) for debugging, audit, and cost analysis.",
   "license": "MIT",
   "repository": {
     "type": "git",
